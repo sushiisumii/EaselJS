@@ -119,6 +119,17 @@ var p = BitmapAnimation.prototype = new DisplayObject();
 	 **/
 	p.currentAnimationFrame = 0;
 
+        /**
+         * Specifies that the animation is trigger upon elapsed time, rather than every tick.
+         */
+        p.timeBased = false;
+
+        p.elapsedTime = 0;
+
+        p.restTime = 0;
+    
+        p.isResting = false;
+
 // private properties:
 	/**
 	 * @property _advanceCount
@@ -256,7 +267,7 @@ var p = BitmapAnimation.prototype = new DisplayObject();
 	 * Advances the playhead. This occurs automatically each tick by default.
 	 * @method advance
 	*/
-	p.advance = function() {
+	p.advance = function(data) {
 		if (this._animation) { this.currentAnimationFrame++; }
 		else { this.currentFrame++; }
 		this._normalizeFrame();
@@ -289,11 +300,33 @@ var p = BitmapAnimation.prototype = new DisplayObject();
 	 * @method _tick
 	 **/
 	p._tick = function(data) {
+            if(this.timeBased) {
+		var rate = this._animation ? this._animation.rate : 100;
+		var f = this._animation ? ((this._animation.restTime === undefined || this._animation.restTime === null) ? 0 : this._animation.restTime) : 0;
+                this.elapsedTime += data; 
+		if (!this.paused) {
+                  if (this.restTime >= f) {
+                      if(this.isResting) {
+                        this.isResting = false;
+                        this.elapsedTime = data;
+                      }
+                        while(this.elapsedTime >= rate) {
+                            this.advance();
+                            this.elapsedTime -= rate;
+                        }
+                  } else {
+                      this.restTime += data; 
+                  }
+		}
+		if (this.onTick) { this.onTick(data); }
+
+            } else {
 		var f = this._animation ? this._animation.frequency : 1;
 		if (!this.paused && ((++this._advanceCount)+this.offset)%f == 0) {
 			this.advance();
 		}
 		if (this.onTick) { this.onTick(data); }
+            }
 	}
 	
 	
@@ -308,6 +341,8 @@ var p = BitmapAnimation.prototype = new DisplayObject();
 			if (this.currentAnimationFrame >= a.frames.length) {
 				if (a.next) {
 					this._goto(a.next);
+                                        this.isResting = true;
+                                        this.restTime = 0;
 				} else {
 					this.paused = true;
 					this.currentAnimationFrame = a.frames.length-1;
@@ -346,6 +381,7 @@ var p = BitmapAnimation.prototype = new DisplayObject();
 		o.offset = this.offset;
 		o._animation = this._animation;
 		o.currentAnimationFrame = this.currentAnimationFrame;
+		o.timeBased = this.timeBased;
 	}
 
 	/**

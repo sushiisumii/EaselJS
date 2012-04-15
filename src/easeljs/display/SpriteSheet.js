@@ -265,6 +265,8 @@ var p = SpriteSheet.prototype;
 					}
 				} else { // complex
 					anim.frequency = obj.frequency;
+                                        anim.rate = obj.rate;
+                                        anim.restTime = obj.restTime;
 					anim.next = obj.next;
 					a = anim.frames = obj.frames.slice(0);
 				}
